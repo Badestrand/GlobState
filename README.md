@@ -47,7 +47,7 @@ export default new Search()
  
 .2. Create a component that uses that global object and gets updated each time it changes:
 ```js
-// SearchField.jsx
+// SearchResults.jsx
 import GlobState from 'globstate'
 import search from './globals/search'
  
@@ -68,6 +68,7 @@ class SearchResults extends Component {
 export default GlobState.connect(SearchResults, ['search'])
 ```
 ```js
+// SearchField.jsx
 import search from './globals/search'
  
 class SearchField extends Component {
@@ -90,6 +91,26 @@ class SearchField extends Component {
     }
 }
 ```
+```js
+// App.jsx
+import GlobState from 'globstate'
+import search from './globals/search'
+import SearchArea from './SearchArea'
+import SearchField from './SearchField'
+
+class App extends Component {
+    render() {
+        <div>
+            {search.results!==null && (
+                <p>Info: There are {search.results().length} results  <p/>
+            )}
+            <SearchField/>
+            <SearchArea/>
+        </div>
+    }
+}
+App = GlobState.connect(App, ['search'])
+```
  
  That's it! You can use several global objects in the same component without problems and also use asynchronous methods (like setTimeout or API calls) to update global objects.
 
@@ -104,14 +125,14 @@ The first part is easy, just make an object that has variables and functions, pu
 ```js
 // myGlobalCounter.js
 class MyGlobalCounter {
-	_value = 0
+    _value = 0
 
-	read() {
-		return this._value
-	}
-	increment() {
-		this._value += 1
-	}
+    read() {
+        return this._value
+    }
+    increment() {
+        this._value += 1
+    }
 }
 const myGlobalCounter = new MyGlobalCounter()
 export default myGlobalCounter
@@ -168,7 +189,7 @@ class CounterDisplay extends Component {
     }
 }
 ```
-Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. The `subscribe` and `forceUpdate` is by the way exactly how React Redux does (or, at least, did) it as well!
+Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. Whenever it changes it calls its `updateComponents` method which will call `forceUpdate` on all subscribed compnents. This is by the way exactly how React Redux does (or, at least, did) it as well!
 
 The subscription management should go into its separate class of course. And to shorten all the subscribing/unsubscribing you can create a simple High Order Component (HOC) that takes care of that:
 ```js
@@ -182,35 +203,35 @@ class Updater {
         globalNamesMap[globalName] = this
     }
     subscribe(component) {
-		this._subscribers.push(component)
-	}
-	unsubscribe(component) {
-		const index = this._subscribers.indexOf(component)
-		if (index !== -1)  this._subscribers.splice(index, 1)
-	}
-	updateComponents() {
-		for (const subscriber of this._subscribers) {
-			subscriber.forceUpdate()
-		}
-	}
+        this._subscribers.push(component)
+    }
+    unsubscribe(component) {
+        const index = this._subscribers.indexOf(component)
+        if (index !== -1)  this._subscribers.splice(index, 1)
+    }
+    updateComponents() {
+        for (const subscriber of this._subscribers) {
+            subscriber.forceUpdate()
+        }
+    }
     static connect(BaseComponent, globalNames) {
-    	return class extends Component {
-    		componentWillMount() {
-    			for (const globalName of globalNames) {
-        			const global = globalsByName[globalName]
-        			if (!global)  throw new Error('connect: Could not find global \''+globalName+'\'')
-        			global.subscribe(component)
-        		}
-    		}
-    		componentWillUnmount() {
-    			for (const global of Object.values(globalsByName)) {
-		        	global.unsubscribe(component)
-		        }
-    		}
-    		render() {
-    			return <BaseComponent {...this.props}/>
-    		}
-    	}
+        return class extends Component {
+            componentWillMount() {
+                for (const globalName of globalNames) {
+                    const global = globalsByName[globalName]
+                    if (!global)  throw new Error('connect: Could not find global \''+globalName+'\'')
+                    global.subscribe(component)
+                }
+            }
+            componentWillUnmount() {
+                for (const global of Object.values(globalsByName)) {
+                    global.unsubscribe(component)
+                }
+            }
+            render() {
+                return <BaseComponent {...this.props}/>
+            }
+        }
     }
 }
 ```
@@ -225,18 +246,18 @@ The usual example, a counter:
 const GlobState = require('globstate')
 
 class Counter extends GlobState {
-	_value = 0
+    _value = 0
 
-	constructor() {
-		super('counter')  // Provide the name that components can use in 'connect'
-	}
-	read() {
-		return this._value
-	}
-	increment() {
-		this._value += 1
-		this.updateComponents()  // This will update all subscribed components
-	}
+    constructor() {
+        super('counter')  // Provide the name that components can use in 'connect'
+    }
+    read() {
+        return this._value
+    }
+    increment() {
+        this._value += 1
+        this.updateComponents()  // This will update all subscribed components
+    }
 }
 
 export default new Counter()
@@ -246,14 +267,14 @@ export default new Counter()
 import counter from './globals/counter'
 
 class Counter extends Component {
-	render() {
-		return (
-			<div>
-				Counter: {counter.read()}
-				<span onClick={e => counter.increment()}>+</span>
-			</div>
-		)
-	}
+    render() {
+        return (
+            <div>
+                Counter: {counter.read()}
+                <span onClick={e => counter.increment()}>+</span>
+            </div>
+        )
+    }
 }
 
 export default GlobState.connect(Counter, ['counter'])
@@ -270,23 +291,23 @@ class User extends GlobState {
     loggedin = false
     username = false
 
-	constructor() {
-		super('user')
-	}
+    constructor() {
+        super('user')
+    }
 
-	login(email, password, next) {
-		setTimeout(() => {  // Simulate an api call..
-		    if (email==='some@one.com' && password==='123') {
-			    this.loggedin = true
-			    this.username = 'Michel'
-			    next(null) // tell caller that we finished
-		    } else {
-		        this.loggedin = false
-		        next(new Error('Wrong credentials!'))
-		    }
-			this.updateComponents()
-		}, 500)
-	}
+    login(email, password, next) {
+        setTimeout(() => {  // Simulate an api call..
+            if (email==='some@one.com' && password==='123') {
+                this.loggedin = true
+                this.username = 'Michel'
+                next(null) // tell caller that we finished
+            } else {
+                this.loggedin = false
+                next(new Error('Wrong credentials!'))
+            }
+            this.updateComponents()
+        }, 500)
+    }
 }
 
 export default new User()
@@ -297,17 +318,17 @@ import user from './globals/user'
 
 // Just some component that uses the global user object
 class SomeComponent extends Component {
-	render() {
-		return (
-			<div>
-				{user.loggedin? (
-					<span>Logged in!</span>
-				) : (
-					<span>Not logged in!</span>
-				)}
-			</div>
-		)
-	}
+    render() {
+        return (
+            <div>
+                {user.loggedin? (
+                    <span>Logged in!</span>
+                ) : (
+                    <span>Not logged in!</span>
+                )}
+            </div>
+        )
+    }
 }
 SomeComponent = GlobState.connect(SomeComponent, ['user'])
 
@@ -315,33 +336,33 @@ class Header extends Component {
     render() {
         return (
             <header>
-				{user.loggedin? (
-				<span>Hello {user.username}!</span>
-				) : (
-				<button type="button" onClick={e => this.tryLogin()}>login</button>
-				)}
-			</header>
-		)
+                {user.loggedin? (
+                <span>Hello {user.username}!</span>
+                ) : (
+                <button type="button" onClick={e => this.tryLogin()}>login</button>
+                )}
+            </header>
+        )
     }
     tryLogin() {
         const email = prompt('E-Mail')
         const password = prompt('Password')
-		user.login(username, password, (err) => {
-			if (err) alert('Wrong username or password')
-		})
-	}
+        user.login(username, password, (err) => {
+            if (err) alert('Wrong username or password')
+        })
+    }
 }
 Header = GlobState.connect(Header, ['user'])
 
 function App() {
-	return (
-		<div>
-			<Header/>
-			<main>
-				<SomeComponent/>
-			</main>
-		</div>
-	)
+    return (
+        <div>
+            <Header/>
+            <main>
+                <SomeComponent/>
+            </main>
+        </div>
+    )
 }
 ```
 
