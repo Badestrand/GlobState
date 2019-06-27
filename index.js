@@ -51,7 +51,7 @@ class GlobState {
 		}
 	}
 
-	update() {
+	updateComponents() {
 		for (const subscriber of this._subscribers) {
 			subscriber.forceUpdate()
 		}
