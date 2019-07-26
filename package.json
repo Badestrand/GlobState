@@ -1,6 +1,6 @@
 {
 	"name": "globstate",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Simple and beginner friendly global state management for React JS and preact.",
 	"keywords": ["react", "global", "state"],
 	"author": "Michel Helms <michelhelms@gmail.com>",

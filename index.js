@@ -88,7 +88,7 @@ class GlobState {
 	}
 
 	static connect(BaseComponent, globalNames) {
-		return class extends preact.Component {
+		return class extends react.Component {
 			componentWillMount() {
 				GlobState.subscribe(this, globalNames)
 			}
