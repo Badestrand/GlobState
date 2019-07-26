@@ -52,8 +52,17 @@ class GlobState {
 	}
 
 	updateComponents() {
+		console.warn('GlobState: updateComponents is deprecated, please use updateListeners instead. It was renamed because you can now subscribe with simple functions as well: user.subscribe(() => console.log("Something about the user changed!")).')
+		this.updateListeners()
+	}
+
+	updateListeners() {
 		for (const subscriber of this._subscribers) {
-			subscriber.forceUpdate()
+			if (subscriber.forceUpdate) {
+				subscriber.forceUpdate()
+			} else if (typeof subscriber === 'function') {
+				subscriber()
+			}
 		}
 	}
 

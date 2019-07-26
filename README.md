@@ -36,7 +36,7 @@ class Search extends GlobState {
     doSearch(text) {
         fetch('https://example.org/api/search?q='+text).then(r => r.json()).then(json => {
             this._results = JSON.parse(json)
-            this.updateComponents() // This triggers a re-render on all connected components
+            this.updateListeners() // This triggers a re-render on all connected components
         })
     }
 }
@@ -152,7 +152,7 @@ class MyGlobalCounter {
         const index = this._subscribers.indexOf(component)
         if (index !== -1)  this._subscribers.splice(index, 1)
     }
-    updateComponents() {
+    updateListeners() {
         for (const subscriber of this._subscribers) {
             subscriber.forceUpdate()
         }
@@ -162,7 +162,7 @@ class MyGlobalCounter {
     }
     increment() {
         this._value += 1
-        this.updateComponents()
+        this.updateListeners()
     }
 }
 const myGlobalCounter = new MyGlobalCounter()
@@ -189,7 +189,7 @@ class CounterDisplay extends Component {
     }
 }
 ```
-Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. Whenever it changes it calls its `updateComponents` method which will call `forceUpdate` on all subscribed compnents. This is by the way exactly how React Redux does (or, at least, did) it as well!
+Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. Whenever it changes it calls its `updateListeners` method which will call `forceUpdate` on all subscribed compnents. This is by the way exactly how React Redux does (or, at least, did) it as well!
 
 The subscription management should go into its separate class of course. And to shorten all the subscribing/unsubscribing you can create a simple High Order Component (HOC) that takes care of that:
 ```js
@@ -209,7 +209,7 @@ class Updater {
         const index = this._subscribers.indexOf(component)
         if (index !== -1)  this._subscribers.splice(index, 1)
     }
-    updateComponents() {
+    updateListeners() {
         for (const subscriber of this._subscribers) {
             subscriber.forceUpdate()
         }
@@ -256,7 +256,7 @@ class Counter extends GlobState {
     }
     increment() {
         this._value += 1
-        this.updateComponents()  // This will update all subscribed components
+        this.updateListeners()  // This will update all subscribed components
     }
 }
 
@@ -305,7 +305,7 @@ class User extends GlobState {
                 this.loggedin = false
                 next(new Error('Wrong credentials!'))
             }
-            this.updateComponents()
+            this.updateListeners()
         }, 500)
     }
 }
