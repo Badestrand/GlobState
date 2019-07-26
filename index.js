@@ -88,7 +88,7 @@ class GlobState {
 	}
 
 	static connect(BaseComponent, globalNames) {
-		return class extends react.Component {
+		return class extends React.Component {
 			componentWillMount() {
 				GlobState.subscribe(this, globalNames)
 			}
