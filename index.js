@@ -24,7 +24,7 @@ Noch Probleme:
 
 'use strict'
 
-const preact = require('preact')
+const React = require('react')
 
 
 
