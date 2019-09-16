@@ -36,7 +36,7 @@ class Search extends GlobState {
     doSearch(text) {
         fetch('https://example.org/api/search?q='+text).then(r => r.json()).then(json => {
             this._results = JSON.parse(json)
-            this.updateListeners() // This triggers a re-render on all connected components
+            this.updateComponents() // This triggers a re-render on all connected components
         })
     }
 }
@@ -65,7 +65,7 @@ class SearchResults extends Component {
 }
  
 // Export a connected version of the component that will update every time the search results change
-export default GlobState.connect(SearchResults, ['search'])
+export default GlobState.connect(SearchResults, search)
 ```
 ```js
 // SearchField.jsx
@@ -109,7 +109,7 @@ class App extends Component {
         </div>
     }
 }
-App = GlobState.connect(App, ['search'])
+App = GlobState.connect(App, search)
 ```
  
  That's it! You can use several global objects in the same component without problems and also use asynchronous methods (like setTimeout or API calls) to update global objects.
@@ -152,7 +152,7 @@ class MyGlobalCounter {
         const index = this._subscribers.indexOf(component)
         if (index !== -1)  this._subscribers.splice(index, 1)
     }
-    updateListeners() {
+    updateComponents() {
         for (const subscriber of this._subscribers) {
             subscriber.forceUpdate()
         }
@@ -162,7 +162,7 @@ class MyGlobalCounter {
     }
     increment() {
         this._value += 1
-        this.updateListeners()
+        this.updateComponents()
     }
 }
 const myGlobalCounter = new MyGlobalCounter()
@@ -189,19 +189,14 @@ class CounterDisplay extends Component {
     }
 }
 ```
-Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. Whenever it changes it calls its `updateListeners` method which will call `forceUpdate` on all subscribed compnents. This is by the way exactly how React Redux does (or, at least, did) it as well!
+Now you can use the <CounterDisplay/> component in multiple places in your web app and they are all connected to each other through the myGlobalCounter variable. Whenever it changes it calls its `updateComponents` method which will call `forceUpdate` on all subscribed compnents. This is by the way exactly how React Redux does (or, at least, did) it as well!
 
 The subscription management should go into its separate class of course. And to shorten all the subscribing/unsubscribing you can create a simple High Order Component (HOC) that takes care of that:
 ```js
 // Updater.js
-let globalNamesMap = {}
-
 class Updater {
     _subscribers = []
 
-    constructor(globalName) {
-        globalNamesMap[globalName] = this
-    }
     subscribe(component) {
         this._subscribers.push(component)
     }
@@ -209,22 +204,20 @@ class Updater {
         const index = this._subscribers.indexOf(component)
         if (index !== -1)  this._subscribers.splice(index, 1)
     }
-    updateListeners() {
+    updateComponents() {
         for (const subscriber of this._subscribers) {
             subscriber.forceUpdate()
         }
     }
-    static connect(BaseComponent, globalNames) {
+    static connect(BaseComponent, ...globals) {
         return class extends Component {
             componentWillMount() {
-                for (const globalName of globalNames) {
-                    const global = globalsByName[globalName]
-                    if (!global)  throw new Error('connect: Could not find global \''+globalName+'\'')
-                    global.subscribe(component)
+                for (const g of globals) {
+                    g.subscribe(component)
                 }
             }
             componentWillUnmount() {
-                for (const global of Object.values(globalsByName)) {
+                for (const g of globals) {
                     global.unsubscribe(component)
                 }
             }
@@ -248,15 +241,12 @@ const GlobState = require('globstate')
 class Counter extends GlobState {
     _value = 0
 
-    constructor() {
-        super('counter')  // Provide the name that components can use in 'connect'
-    }
     read() {
         return this._value
     }
     increment() {
         this._value += 1
-        this.updateListeners()  // This will update all subscribed components
+        this.updateComponents()  // This will update all subscribed components
     }
 }
 
@@ -277,7 +267,7 @@ class Counter extends Component {
     }
 }
 
-export default GlobState.connect(Counter, ['counter'])
+export default GlobState.connect(Counter, counter)
 ```
 
 
@@ -292,7 +282,7 @@ class User extends GlobState {
     username = false
 
     constructor() {
-        super('user')
+        super()
     }
 
     login(email, password, next) {
@@ -305,7 +295,7 @@ class User extends GlobState {
                 this.loggedin = false
                 next(new Error('Wrong credentials!'))
             }
-            this.updateListeners()
+            this.updateComponents()
         }, 500)
     }
 }
@@ -330,7 +320,7 @@ class SomeComponent extends Component {
         )
     }
 }
-SomeComponent = GlobState.connect(SomeComponent, ['user'])
+SomeComponent = GlobState.connect(SomeComponent, user)
 
 class Header extends Component {
     render() {
@@ -348,11 +338,11 @@ class Header extends Component {
         const email = prompt('E-Mail')
         const password = prompt('Password')
         user.login(username, password, (err) => {
-            if (err) alert('Wrong username or password')
+            if (err) alert(err.message)
         })
     }
 }
-Header = GlobState.connect(Header, ['user'])
+Header = GlobState.connect(Header, user)
 
 function App() {
     return (
