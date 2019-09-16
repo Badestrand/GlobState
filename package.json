@@ -1,15 +1,22 @@
 {
 	"name": "globstate",
-	"version": "1.1.2",
+	"version": "1.1.4",
 	"description": "Simple and beginner friendly global state management for React JS and preact.",
-	"keywords": ["react", "global", "state"],
+	"keywords": [
+		"react",
+		"global",
+		"state",
+		"simple"
+	],
 	"author": "Michel Helms <michelhelms@gmail.com>",
 	"license": "MIT",
 	"main": "./index.js",
-	"scripts": {
-	},
+	"scripts": {},
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/Badestrand/GlobState.git"
+	},
+	"dependencies": {
+		"react": "^16.9.0"
 	}
 }
